@@ -33,17 +33,32 @@ void LCD_Init(){
 	lcd(0x03);_delay_us(200);
 	lcd(0b00000010);_delay_ms(5);
 	lcd(0b00001100);_delay_ms(5);
-	lcd(0b00000001);
+	lcd(0b00000001);_delay_ms(5);
+	
+	lcd(0b00101100);_delay_ms(5); // дополнительная строка, исправляет баг с одной строкой в протеусе
 }
 
 void Clear(){lcd(0b00000001);}
 
-void Curs(unsigned char str, unsigned char mesto){
-	if(str==0){lcd(0b10000000+mesto);}
-	if(str==1){lcd(0b11000000+mesto);}
+void Curs(unsigned char row, unsigned char column){
+	
+	switch (row)
+	{
+		case 1:
+			column += 0x40;
+			break;
+		case 2:
+			column += 0x14;
+			break;
+		case 3:
+			column += 0x54;
+			break;
+	}
+		
+	lcd(0b10000000 + column);
 }
 
-void PrintString(const char* str) {while(*str != '\0') {_delay_us(200);PrintChar(*str);str++;}}
+void PrintString(const char* str) {while(*str != '\0') {PrintChar(*str);str++;}}
 
 void PrintChar(const char chr) {lcdSend(false, (unsigned char)chr);}
 

@@ -12,7 +12,6 @@
 #define LED          3
 #define ADDR_LED     0x27
 
-#define F_CPU 8000000UL
 
 #include "main.h"
 

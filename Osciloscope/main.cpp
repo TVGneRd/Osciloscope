@@ -10,6 +10,15 @@
 extern unsigned int adc_value = 5;
 bool adc_value_updated = false;
 bool usart_ready = false;
+bool is_DC = true;
+
+int values[128];
+
+#define UPDATE_DELAY 131072UL
+
+enum Modes {RECORDER, GENERATOR};
+
+Modes mode = RECORDER;
 
 char *ftoa(float f)
 {
@@ -23,8 +32,8 @@ char *ftoa(float f)
 	}
 	l = (unsigned long)f;
 	f -= (float)l;
-	rem = (unsigned long)(f * 1e3);
-	sprintf(cp, "%lu.%3.3lu", l, rem);
+	rem = (unsigned long)(f * 1e2);
+	sprintf(cp, "%lu.%2.2lu", l, rem);
 	return buf;
 }
 
@@ -35,10 +44,6 @@ ISR(USART_RXC_vect)
 	if(UDR == 0){
 		USART_Transmit(0xFF);
 		usart_ready = true;
-		
-		Clear();
-		Curs(0,0);
-		PrintString("USART CONNECTED");
 	}
 }
 
@@ -62,25 +67,69 @@ void TransmitInt(unsigned int num){
 	USART_Transmit(*(ptr));
 }
 
-void loop(){
-	unsigned int i = 0;
+bool isDC(){
+	int min = INT_MAX;
+	int max = 0;
 	
+	for(int i = 0; i < 128; i++){
+		if(values[i] > max) max = values[i];
+		else if(values[i] < min) min = values[i];
+	}
+	
+	return max - min < 30;
+}
+
+void printRecordingStatus(){
+	char uartStr[20] = "UART: ";
+	strcat(uartStr, usart_ready ? "CONNECTED" : "DISCONECTED");
+	
+	Curs(1,0);
+	PrintString(uartStr);
+	
+	char voltageStr[20] = "VOLTAGE: ";
+	strcat(voltageStr, ftoa(adc_value / 1023.f * 5.f));
+	strcat(voltageStr, isDC() ? " --" : " -_");
+	
+	Curs(2,0);
+	PrintString(voltageStr);
+}
+
+void printStatus(){
+	Clear();
+	
+	char modeStr[20] = "Mode: ";
+	strcat(modeStr, mode == RECORDER ? "RECORDING" : "GENERATOR");	
+	
+	Curs(0,0);
+	PrintString(modeStr);
+	
+	printRecordingStatus();
+}
+
+void loop(){
+	unsigned long int i = 0;
+	unsigned long int step = UPDATE_DELAY >> 7;
 	sei();
 	
 	while(1)
 	{
-		//Передаем при включении
-		
-		if(i == 60){
+		if(mode == GENERATOR){
 			
-			Clear(); // очистка экрана
+		} else {
+			   
+		}
+		
+		//Передаем при включении
+		if(i % step == 0){
+			values[i / step] = adc_value;
+		}
+		
+		if(i == UPDATE_DELAY){
 			cli();
-			Curs(1,0);
-			PrintString("VOLTAGE: ");
-			PrintString(ftoa(adc_value / 1023.f * 5.f));
+			printStatus();
 			sei();
 			
-			i = 0;
+			i = -1;
 		}
 		
 		if(usart_ready && adc_value_updated){
@@ -88,7 +137,7 @@ void loop(){
 			TransmitInt((unsigned int) adc_value);
 		}
 		
-		_delay_ms(10);
+		//_delay_ms(10);
 		
 		i++;
 	}
@@ -96,21 +145,15 @@ void loop(){
 
 int main()
 {
-	_delay_ms(1000);
+	wire_set(8000000, 100000); // тактовая частота контроллера, частота шины I2C
 	
 	USART_Init(8); //12 - 9600 8 - 115200
-
+	
 	ADC_Init(); //Инициализируем АЦП
 	LCD_Init();
 	
 	Clear(); // очистка экрана
 	led(1);  // включение и отключение подсветки экрана
-	Curs(0,0);
-	
-	PrintString("WAITING...");
-
-	wire_set(8000000, 100000); // тактовая частота контроллера, частота шины I2C
-
 	loop();
 }
 
