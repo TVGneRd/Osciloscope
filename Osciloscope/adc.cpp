@@ -11,13 +11,13 @@ void ADC_Init(void)
 	
 	ADCSRA |= 1<<ADFR;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 	
-	ADMUX |= (0<<REFS1) | (0<<REFS0); //AVCC with external capacitor at AREF pin
+	ADMUX |= (1<<REFS1) | (1<<REFS0); //AVCC with external capacitor at AREF pin
 	
 	ADMUX |= (0<<ADLAR); //лев выравнивание
 	
-	ADMUX |= (1<<MUX1) | (1<<MUX0); // PC3 запуск по 1 каналу
+	ADMUX |= (0<<MUX1) | (1<<MUX0); // PC3 запуск по 1 каналу
 	
-	ADMUX = (ADMUX & 0x00);
+	//ADMUX = (ADMUX & 0x00);
 	
 	ADCSRA |= 1<<ADSC;
 	
